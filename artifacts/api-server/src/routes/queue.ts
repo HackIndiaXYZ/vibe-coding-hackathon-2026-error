@@ -142,11 +142,6 @@ router.post("/queue/:patientId/complete", async (req, res): Promise<void> => {
     return;
   }
 
-  await db
-    .update(doctorsTable)
-    .set({ currentPatientId: null })
-    .where(eq(doctorsTable.currentPatientId, params.data.patientId));
-
   // Find and update active consultation log with end time and actual duration
   const [activeLog] = await db
     .select()
@@ -181,6 +176,32 @@ router.post("/queue/:patientId/complete", async (req, res): Promise<void> => {
       endTime,
       actualDuration,
     });
+  }
+
+  // Automatically select the next patient
+  const nextPatient = await db
+    .select()
+    .from(patientsTable)
+    .where(eq(patientsTable.status, "waiting"))
+    .orderBy(patientsTable.tokenNumber)
+    .limit(1);
+
+  if (nextPatient.length > 0) {
+    const nextP = nextPatient[0];
+    await db
+      .update(patientsTable)
+      .set({ status: "called", calledAt: new Date() })
+      .where(eq(patientsTable.id, nextP.id));
+
+    await db
+      .update(doctorsTable)
+      .set({ currentPatientId: nextP.id })
+      .where(eq(doctorsTable.id, 1));
+  } else {
+    await db
+      .update(doctorsTable)
+      .set({ currentPatientId: null })
+      .where(eq(doctorsTable.id, 1));
   }
 
   // Recalculate queue wait times

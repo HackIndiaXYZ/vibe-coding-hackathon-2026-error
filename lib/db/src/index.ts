@@ -135,6 +135,8 @@ if (process.env.DATABASE_URL) {
       const lowerSql = queryText.toLowerCase();
 
       const executeQuery = async () => {
+        console.log("MOCK_DB SQL:", queryText);
+        console.log("MOCK_DB PARAMS:", params);
         // --- SETTINGS ---
         if (lowerSql.includes('from "settings"')) {
           return getMockResult([mockSettings]);
@@ -184,17 +186,28 @@ if (process.env.DATABASE_URL) {
 
         // --- PATIENTS ---
         if (lowerSql.includes('from "patients"')) {
-          if (lowerSql.includes('where "patients"."id" = $1') || lowerSql.includes('where "patients"."id" = $2')) {
-            const idVal = params[0];
-            const found = mockPatients.find((p) => p.id === idVal);
-            return getMockResult(found ? [found] : []);
+          const statusMatch = queryText.match(/where "patients"\."status"\s*=\s*\$(\d+)/i);
+          const idMatch = queryText.match(/where "patients"\."id"\s*=\s*\$(\d+)/i);
+          const tokenMatch = queryText.match(/where "patients"\."token_number"\s*=\s*\$(\d+)/i);
+
+          let filtered = [...mockPatients];
+
+          if (idMatch) {
+            const idVal = params[parseInt(idMatch[1], 10) - 1];
+            filtered = filtered.filter((p) => p.id === idVal);
+          } else if (tokenMatch) {
+            const tokenVal = params[parseInt(tokenMatch[1], 10) - 1];
+            filtered = filtered.filter((p) => p.tokenNumber === tokenVal);
+          } else if (statusMatch) {
+            const statusVal = params[parseInt(statusMatch[1], 10) - 1];
+            filtered = filtered.filter((p) => p.status === statusVal);
           }
-          if (lowerSql.includes('where "patients"."token_number" = $1')) {
-            const tokenVal = params[0];
-            const found = mockPatients.find((p) => p.tokenNumber === tokenVal);
-            return getMockResult(found ? [found] : []);
+
+          if (lowerSql.includes('order by "patients"."token_number"')) {
+            filtered.sort((a, b) => a.tokenNumber - b.tokenNumber);
           }
-          return getMockResult(mockPatients);
+
+          return getMockResult(filtered);
         }
         if (lowerSql.includes('insert into "patients"')) {
           const newPatient: any = { 
