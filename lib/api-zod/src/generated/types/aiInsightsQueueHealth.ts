@@ -14,4 +14,7 @@ export const AiInsightsQueueHealth = {
   good: 'good',
   moderate: 'moderate',
   critical: 'critical',
+  healthy: 'healthy',
+  busy: 'busy',
+  overloaded: 'overloaded',
 } as const;

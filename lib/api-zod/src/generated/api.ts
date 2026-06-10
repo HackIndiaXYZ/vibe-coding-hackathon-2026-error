@@ -299,7 +299,7 @@ export const GetHourlyAnalyticsResponse = zod.array(GetHourlyAnalyticsResponseIt
  * @summary Get AI insights and recommendations
  */
 export const GetAiInsightsResponse = zod.object({
-  "queueHealth": zod.enum(['excellent', 'good', 'moderate', 'critical']),
+  "queueHealth": zod.enum(['excellent', 'good', 'moderate', 'critical', 'healthy', 'busy', 'overloaded']),
   "predictedFinishTime": zod.string(),
   "avgConsultationMinutes": zod.number(),
   "recommendations": zod.array(zod.string()),

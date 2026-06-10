@@ -47,6 +47,44 @@ if (process.env.DATABASE_URL) {
   // Offline Mock DB implementation
   console.log("⚠️ DATABASE_URL is not set. Running in OFFLINE MOCK MODE with in-memory database!");
 
+  // Helper to parse columns and values from an INSERT statement correctly matching parameters
+  function parseInsertValues(queryStr: string, queryParams: any[]): Record<string, any> {
+    const colsMatch = queryStr.match(/insert\s+into\s+"?[a-zA-Z0-9_]+"?"?\s*\(([^)]+)\)\s*values\s*\(([^)]+)\)/i);
+    const result: Record<string, any> = {};
+    if (!colsMatch) return result;
+
+    const cols = colsMatch[1].split(",").map(c => c.replace(/"/g, "").trim());
+    const vals = colsMatch[2].split(",").map(v => v.trim());
+
+    for (let i = 0; i < cols.length; i++) {
+      const colName = cols[i];
+      const valExpr = vals[i];
+      const field = toCamelCase(colName);
+
+      if (valExpr.startsWith("$")) {
+        const paramIdx = parseInt(valExpr.substring(1), 10) - 1;
+        result[field] = queryParams[paramIdx];
+      } else if (valExpr.toLowerCase() === "default") {
+        // Leave undefined
+      } else if (valExpr.toLowerCase() === "null") {
+        result[field] = null;
+      } else {
+        let parsedVal: any = valExpr;
+        if (valExpr.startsWith("'") && valExpr.endsWith("'")) {
+          parsedVal = valExpr.slice(1, -1);
+        } else if (!isNaN(Number(valExpr))) {
+          parsedVal = Number(valExpr);
+        } else if (valExpr.toLowerCase() === "true") {
+          parsedVal = true;
+        } else if (valExpr.toLowerCase() === "false") {
+          parsedVal = false;
+        }
+        result[field] = parsedVal;
+      }
+    }
+    return result;
+  }
+
   // In-memory data
   const mockSettings = {
     id: 1,
@@ -74,9 +112,11 @@ if (process.env.DATABASE_URL) {
 
   const mockPatients: any[] = [];
   const mockNotifications: any[] = [];
+  const mockConsultationLogs: any[] = [];
 
   let nextPatientId = 1;
   let nextNotificationId = 1;
+  let nextConsultationLogId = 1;
 
   // Mock Postgres client-like object
   const mockPool = {
@@ -103,7 +143,9 @@ if (process.env.DATABASE_URL) {
           return getMockResult([mockSettings], "INSERT");
         }
         if (lowerSql.includes('update "settings"')) {
-          const setMatches = queryText.match(/"([a-z0-9_]+)"\s*=\s*\$(\d+)/g);
+          const whereIndex = lowerSql.indexOf("where");
+          const setPart = whereIndex !== -1 ? queryText.slice(0, whereIndex) : queryText;
+          const setMatches = setPart.match(/"([a-z0-9_]+)"\s*=\s*\$(\d+)/g);
           if (setMatches) {
             for (const match of setMatches) {
               const parts = match.split("=");
@@ -123,7 +165,9 @@ if (process.env.DATABASE_URL) {
           return getMockResult(mockDoctors);
         }
         if (lowerSql.includes('update "doctors"')) {
-          const setMatches = queryText.match(/"([a-z0-9_]+)"\s*=\s*\$(\d+)/g);
+          const whereIndex = lowerSql.indexOf("where");
+          const setPart = whereIndex !== -1 ? queryText.slice(0, whereIndex) : queryText;
+          const setMatches = setPart.match(/"([a-z0-9_]+)"\s*=\s*\$(\d+)/g);
           if (setMatches) {
             for (const match of setMatches) {
               const parts = match.split("=");
@@ -153,20 +197,14 @@ if (process.env.DATABASE_URL) {
           return getMockResult(mockPatients);
         }
         if (lowerSql.includes('insert into "patients"')) {
-          const colsMatch = queryText.match(/insert into "patients"\s*\(([^)]+)\)/i);
           const newPatient: any = { 
             id: nextPatientId++, 
             createdAt: new Date().toISOString(), 
             calledAt: null, 
             completedAt: null 
           };
-          if (colsMatch) {
-            const cols = colsMatch[1].split(",").map((c) => c.replace(/"/g, "").trim());
-            for (let i = 0; i < cols.length; i++) {
-              const field = toCamelCase(cols[i]);
-              newPatient[field] = params[i];
-            }
-          }
+          const parsed = parseInsertValues(queryText, params);
+          Object.assign(newPatient, parsed);
           mockPatients.push(newPatient);
           return getMockResult([newPatient], "INSERT");
         }
@@ -179,7 +217,9 @@ if (process.env.DATABASE_URL) {
           }
           const patient = mockPatients.find((p) => p.id === patientId);
           if (patient) {
-            const setMatches = queryText.match(/"([a-z0-9_]+)"\s*=\s*\$(\d+)/g);
+            const whereIndex = lowerSql.indexOf("where");
+            const setPart = whereIndex !== -1 ? queryText.slice(0, whereIndex) : queryText;
+            const setMatches = setPart.match(/"([a-z0-9_]+)"\s*=\s*\$(\d+)/g);
             if (setMatches) {
               for (const match of setMatches) {
                 const parts = match.split("=");
@@ -210,20 +250,66 @@ if (process.env.DATABASE_URL) {
           return getMockResult(filtered);
         }
         if (lowerSql.includes('insert into "notifications"')) {
-          const colsMatch = queryText.match(/insert into "notifications"\s*\(([^)]+)\)/i);
           const newNotif: any = { 
             id: nextNotificationId++, 
             createdAt: new Date().toISOString() 
           };
-          if (colsMatch) {
-            const cols = colsMatch[1].split(",").map((c) => c.replace(/"/g, "").trim());
-            for (let i = 0; i < cols.length; i++) {
-              const field = toCamelCase(cols[i]);
-              newNotif[field] = params[i];
-            }
-          }
+          const parsed = parseInsertValues(queryText, params);
+          Object.assign(newNotif, parsed);
           mockNotifications.push(newNotif);
           return getMockResult([newNotif], "INSERT");
+        }
+
+        // --- CONSULTATION LOGS ---
+        if (lowerSql.includes('from "consultation_logs"')) {
+          const patientIdMatch = queryText.match(/"patient_id"\s*=\s*\$(\d+)/i);
+          const isNullEndTime = lowerSql.includes('is null') || lowerSql.includes('end_time is null') || lowerSql.includes('end_time" is null');
+          let filtered = mockConsultationLogs;
+          if (patientIdMatch) {
+            const pid = params[parseInt(patientIdMatch[1], 10) - 1];
+            filtered = filtered.filter(n => n.patientId === pid);
+          }
+          if (isNullEndTime) {
+            filtered = filtered.filter(n => n.endTime === null);
+          }
+          return getMockResult(filtered);
+        }
+        if (lowerSql.includes('insert into "consultation_logs"')) {
+          const newLog: any = { 
+            id: nextConsultationLogId++, 
+            startTime: new Date().toISOString(),
+            endTime: null,
+            actualDuration: null
+          };
+          const parsed = parseInsertValues(queryText, params);
+          Object.assign(newLog, parsed);
+          mockConsultationLogs.push(newLog);
+          return getMockResult([newLog], "INSERT");
+        }
+        if (lowerSql.includes('update "consultation_logs"')) {
+          const idMatch = queryText.match(/where "consultation_logs"\."id"\s*=\s*\$(\d+)/i);
+          let logId = -1;
+          if (idMatch) {
+            const paramIdx = parseInt(idMatch[1], 10) - 1;
+            logId = params[paramIdx];
+          }
+          const log = mockConsultationLogs.find((l) => l.id === logId);
+          if (log) {
+            const whereIndex = lowerSql.indexOf("where");
+            const setPart = whereIndex !== -1 ? queryText.slice(0, whereIndex) : queryText;
+            const setMatches = setPart.match(/"([a-z0-9_]+)"\s*=\s*\$(\d+)/g);
+            if (setMatches) {
+              for (const match of setMatches) {
+                const parts = match.split("=");
+                const col = parts[0].replace(/"/g, "").trim();
+                const paramIdx = parseInt(parts[1].replace(/\$/g, "").trim(), 10) - 1;
+                const field = toCamelCase(col);
+                log[field] = params[paramIdx];
+              }
+            }
+            return getMockResult([log], "UPDATE");
+          }
+          return getMockResult([]);
         }
 
         return getMockResult([]);

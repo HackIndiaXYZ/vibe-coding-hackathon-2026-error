@@ -23,6 +23,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { QRCodeSVG } from "qrcode.react";
+import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
 
 const patientSchema = z.object({
   name: z.string().min(2, "Name is required"),
@@ -33,6 +34,7 @@ const patientSchema = z.object({
 
 export default function Reception() {
   const queryClient = useQueryClient();
+  useRealtimeRefresh();
   const [generatedToken, setGeneratedToken] = useState<number | null>(null);
   
   const { data: queueData } = useGetQueue();
@@ -209,16 +211,26 @@ export default function Reception() {
             {/* AI Insights */}
             <Card className="rounded-3xl shadow-none bg-gradient-to-br from-[#e5efe5] to-[#c8e0c8] border-none">
               <CardContent className="p-6">
-                <h3 className="font-serif text-xl mb-4">AI Queue Health</h3>
+                <h3 className="font-serif text-xl mb-4">AI Queue Insights</h3>
                 <div className="space-y-4">
                   <div>
-                    <p className="text-sm opacity-80">Status</p>
+                    <p className="text-sm opacity-80">Queue Health</p>
                     <p className="font-medium capitalize">{aiInsights?.queueHealth || "Calculating..."}</p>
                   </div>
                   <div>
                     <p className="text-sm opacity-80">Predicted Finish</p>
-                    <p className="font-medium">{aiInsights?.predictedFinishTime ? new Date(aiInsights.predictedFinishTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "N/A"}</p>
+                    <p className="font-medium">{aiInsights?.predictedFinishTime || "N/A"}</p>
                   </div>
+                  {aiInsights?.recommendations && aiInsights.recommendations.length > 0 && (
+                    <div className="pt-2 border-t border-black/10 space-y-2">
+                      <p className="text-xs font-bold tracking-wider uppercase opacity-75">AI Recommendations</p>
+                      <ul className="list-disc pl-4 text-xs space-y-1">
+                        {aiInsights.recommendations.map((rec, i) => (
+                          <li key={i} className="leading-snug">{rec}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -253,9 +265,14 @@ export default function Reception() {
                             <p className="text-sm text-muted-foreground capitalize">{patient.visitType}</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-4 text-right">
                           {patient.estimatedWaitMinutes != null && patient.status === 'waiting' && (
-                            <span className="text-sm text-muted-foreground">~{patient.estimatedWaitMinutes}m wait</span>
+                            <div className="flex flex-col items-end">
+                              <span className="text-sm font-medium">~{patient.estimatedWaitMinutes} min wait</span>
+                              <span className="text-xs text-muted-foreground">
+                                Call: {new Date(Date.now() + patient.estimatedWaitMinutes * 60000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
                           )}
                           <StatusBadge status={patient.status} />
                         </div>

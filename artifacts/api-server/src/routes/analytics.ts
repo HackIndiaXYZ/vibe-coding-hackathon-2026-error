@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
-import { db, patientsTable } from "@workspace/db";
+import { db, patientsTable, settingsTable, consultationLogsTable } from "@workspace/db";
 import {
   GetAnalyticsSummaryResponse,
   GetHourlyAnalyticsResponse,
@@ -109,49 +109,105 @@ router.get("/analytics/hourly", async (req, res): Promise<void> => {
 
 router.get("/analytics/ai-insights", async (req, res): Promise<void> => {
   const patients = await db.select().from(patientsTable);
+  const [settings] = await db.select().from(settingsTable).limit(1);
+  const clinicAvg = settings?.avgConsultationMinutes ?? 12;
 
-  const waiting = patients.filter((p) => p.status === "waiting").length;
+  const waitingPatients = patients.filter((p) => p.status === "waiting");
+  const waitingCount = waitingPatients.length;
   const completed = patients.filter((p) => p.status === "completed");
-  const inConsult = patients.filter(
-    (p) => p.status === "in_consultation",
-  ).length;
 
-  const avgConsult =
-    completed.length > 0
-      ? completed
-          .filter((p) => p.calledAt && p.completedAt)
-          .reduce(
-            (sum, p) =>
-              sum +
-              (new Date(p.completedAt!).getTime() -
-                new Date(p.calledAt!).getTime()) /
-                60000,
-            0,
-          ) / Math.max(completed.length, 1)
-      : 12;
+  // Calculate average wait time of all waiting patients
+  let avgWait = 0;
+  if (waitingCount > 0) {
+    const sumWait = waitingPatients.reduce((sum, p) => sum + (p.estimatedWaitMinutes ?? 0), 0);
+    avgWait = sumWait / waitingCount;
+  }
 
-  const load = Math.min(100, Math.round((waiting / 20) * 100));
+  // Calculate average consultation time today
+  let avgConsult = clinicAvg;
+  if (completed.length > 0) {
+    const completedToday = completed.filter(
+      (p) => p.calledAt && p.completedAt && new Date(p.completedAt).toDateString() === new Date().toDateString()
+    );
+    if (completedToday.length > 0) {
+      const sumConsult = completedToday.reduce(
+        (sum, p) =>
+          sum +
+          (new Date(p.completedAt!).getTime() - new Date(p.calledAt!).getTime()) /
+            60000,
+        0
+      );
+      avgConsult = sumConsult / completedToday.length;
+    }
+  }
 
-  let queueHealth: "excellent" | "good" | "moderate" | "critical" =
-    "excellent";
-  if (waiting > 15) queueHealth = "critical";
-  else if (waiting > 10) queueHealth = "moderate";
-  else if (waiting > 5) queueHealth = "good";
+  // Queue Health Score:
+  // 0-15 min: healthy
+  // 15-30 min: busy
+  // 30+ min: overloaded
+  let queueHealth: "healthy" | "busy" | "overloaded" = "healthy";
+  if (avgWait > 30) {
+    queueHealth = "overloaded";
+  } else if (avgWait > 15) {
+    queueHealth = "busy";
+  }
 
-  const finishMins = waiting * Math.round(avgConsult);
-  const finishTime = new Date(
-    Date.now() + finishMins * 60000,
-  ).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+  // Calculate dynamic finish time
+  let finishMins = 0;
+  if (waitingPatients.length > 0) {
+    // Get expected duration for each waiting patient
+    for (const patient of waitingPatients) {
+      const norm = patient.visitType.toLowerCase();
+      let expected = 12;
+      if (norm.includes("follow")) expected = 5;
+      else if (norm.includes("emergency")) expected = 18;
+      finishMins += expected;
+    }
+    // Also add remaining time of the patient currently in consultation if any
+    const inConsult = patients.find((p) => p.status === "in_consultation");
+    if (inConsult) {
+      const norm = inConsult.visitType.toLowerCase();
+      let expected = 12;
+      if (norm.includes("follow")) expected = 5;
+      else if (norm.includes("emergency")) expected = 18;
+      const elapsed = inConsult.calledAt ? (Date.now() - new Date(inConsult.calledAt).getTime()) / 60000 : 0;
+      finishMins += Math.max(1, expected - elapsed);
+    }
+  }
 
+  const finishTime = new Date(Date.now() + finishMins * 60000).toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  // Dynamic AI Insights / Recommendations
   const recommendations: string[] = [];
-  if (waiting > 10)
-    recommendations.push("Consider opening a second consultation room");
-  if (avgConsult > 15)
-    recommendations.push("Average consultation time is above target — review workflow");
-  if (waiting < 3)
-    recommendations.push("Queue is light — ideal time for administrative tasks");
-  if (recommendations.length === 0)
-    recommendations.push("Queue flow is optimal. Maintain current pace.");
+  
+  // 1. Average consultation time percentage difference
+  const diffPct = Math.round(((avgConsult - clinicAvg) / clinicAvg) * 100);
+  if (diffPct > 0) {
+    recommendations.push(`Average consultation time increased by ${diffPct}% today.`);
+  } else if (diffPct < 0) {
+    recommendations.push(`Average consultation time decreased by ${Math.abs(diffPct)}% today.`);
+  } else {
+    recommendations.push(`Average consultation time is stable at clinic average (${clinicAvg} min).`);
+  }
+
+  // 2. Queue expected finish time insight
+  if (waitingCount > 0) {
+    recommendations.push(`Queue expected to finish at ${finishTime}.`);
+  } else {
+    recommendations.push("No patients waiting. Queue is clear.");
+  }
+
+  // 3. Current wait times above clinic average
+  if (avgWait > clinicAvg) {
+    recommendations.push("Current wait times are above clinic average.");
+  } else if (waitingCount > 0) {
+    recommendations.push("Current wait times are within clinic limits.");
+  }
+
+  const load = Math.min(100, Math.round((waitingCount / 20) * 100));
 
   res.json(
     GetAiInsightsResponse.parse({

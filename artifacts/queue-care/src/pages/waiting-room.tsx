@@ -2,9 +2,11 @@ import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useGetQueue, getGetQueueQueryKey } from "@workspace/api-client-react";
 import { motion } from "framer-motion";
+import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
 
 export default function WaitingRoom() {
   const queryClient = useQueryClient();
+  useRealtimeRefresh();
   const { data: queueData } = useGetQueue();
 
   useEffect(() => {

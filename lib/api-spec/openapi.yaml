@@ -448,7 +448,7 @@ components:
       properties:
         queueHealth:
           type: string
-          enum: [excellent, good, moderate, critical]
+          enum: [excellent, good, moderate, critical, healthy, busy, overloaded]
         predictedFinishTime:
           type: string
         avgConsultationMinutes:

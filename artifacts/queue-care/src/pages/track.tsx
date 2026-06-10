@@ -5,11 +5,13 @@ import { useTrackPatientByToken, getTrackPatientByTokenQueryKey } from "@workspa
 import { motion, AnimatePresence } from "framer-motion";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Clock, Users, BellRing } from "lucide-react";
+import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
 
 export default function Track() {
   const params = useParams();
   const token = Number(params.token);
   const queryClient = useQueryClient();
+  useRealtimeRefresh();
 
   const [notification, setNotification] = useState<{ type: string; message: string } | null>(null);
   const [showNotificationPopup, setShowNotificationPopup] = useState(false);
@@ -102,20 +104,29 @@ export default function Track() {
 
           <div className="h-px w-full bg-border" />
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div className="text-center space-y-2">
               <div className="mx-auto w-10 h-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground">
                 <Users className="w-5 h-5" />
               </div>
-              <p className="text-2xl font-serif">{patientsAhead}</p>
-              <p className="text-xs text-muted-foreground">People Ahead</p>
+              <p className="text-xl font-serif">{patientsAhead}</p>
+              <p className="text-[10px] text-muted-foreground uppercase font-semibold">Patients Ahead</p>
             </div>
             <div className="text-center space-y-2">
               <div className="mx-auto w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center text-accent-foreground">
                 <Clock className="w-5 h-5" />
               </div>
-              <p className="text-2xl font-serif">{estimatedWaitMinutes}m</p>
-              <p className="text-xs text-muted-foreground">Est. Wait</p>
+              <p className="text-xl font-serif">{estimatedWaitMinutes} min</p>
+              <p className="text-[10px] text-muted-foreground uppercase font-semibold">Estimated Wait</p>
+            </div>
+            <div className="text-center space-y-2">
+              <div className="mx-auto w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-600">
+                <Clock className="w-5 h-5" />
+              </div>
+              <p className="text-xl font-serif">
+                {new Date(Date.now() + estimatedWaitMinutes * 60000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </p>
+              <p className="text-[10px] text-muted-foreground uppercase font-semibold">Expected Call</p>
             </div>
           </div>
         </div>

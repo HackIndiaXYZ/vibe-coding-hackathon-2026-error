@@ -11,6 +11,7 @@ import {
 } from "@workspace/api-zod";
 import { serializeDates } from "../lib/serialize";
 import { checkAndSendNotifications, sseConnections } from "../lib/notifications";
+import { recalculateQueue } from "../lib/prediction";
 
 const router: IRouter = Router();
 
@@ -19,8 +20,8 @@ function computeEstimates(patients: typeof patientsTable.$inferSelect[]) {
   const waiting = patients.filter((p) => p.status === "waiting");
   return waiting.map((p, idx) => ({
     ...p,
-    patientsAhead: idx,
-    estimatedWaitMinutes: idx * AVG_MINUTES,
+    patientsAhead: p.patientsAhead ?? idx,
+    estimatedWaitMinutes: p.estimatedWaitMinutes ?? (idx * AVG_MINUTES),
   }));
 }
 
@@ -62,6 +63,9 @@ router.post("/patients", async (req, res): Promise<void> => {
     })
     .returning();
 
+  // Recalculate predictions for all patients
+  await recalculateQueue();
+
   // Run in background to evaluate notifications triggers
   checkAndSendNotifications();
 
@@ -95,12 +99,12 @@ router.get("/patients/track/:token", async (req, res): Promise<void> => {
   const tracking = TrackPatientByTokenResponse.parse(serializeDates({
     patient: {
       ...patient,
-      patientsAhead: waitingBefore,
-      estimatedWaitMinutes: waitingBefore * 12,
+      patientsAhead: patient.patientsAhead ?? waitingBefore,
+      estimatedWaitMinutes: patient.estimatedWaitMinutes ?? (waitingBefore * 12),
     },
     currentServingToken: currentServing?.tokenNumber ?? null,
-    patientsAhead: waitingBefore,
-    estimatedWaitMinutes: waitingBefore * 12,
+    patientsAhead: patient.patientsAhead ?? waitingBefore,
+    estimatedWaitMinutes: patient.estimatedWaitMinutes ?? (waitingBefore * 12),
     queueStatus: "active",
   }));
 
