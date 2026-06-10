@@ -114,20 +114,20 @@ Configuration variables are managed via environment files. The defaults are pre-
 | Variable | Default | Description |
 | :--- | :--- | :--- |
 | `PORT` | `5000` | Port for the backend API server to bind to. |
-| `NODE_ENV` | `development` | In `production`, Express serves the frontend SPA static files from `queue-care/dist/public`. |
+| `NODE_ENV` | `development` | In `production`, Express serves the frontend SPA static files from `apps/queue-care/dist/public`. |
 | `DATABASE_URL` | *None* | Connection string for PostgreSQL database. Falls back to an in-memory mock DB if not provided. |
 
 ---
 
 ## 🛠️ Codebase Structure
 
-- [artifacts/api-server](file:///D:/Clinic-Queue-Manager/artifacts/api-server) — The core backend Express API server.
-  - [app.ts](file:///D:/Clinic-Queue-Manager/artifacts/api-server/src/app.ts) — Main Express app configuration, middleware, and production static hosting config.
-  - [routes/queue.ts](file:///D:/Clinic-Queue-Manager/artifacts/api-server/src/routes/queue.ts) — Contains queue state transitions (calls, completions, skips) and wait recalculations.
-- [artifacts/queue-care](file:///D:/Clinic-Queue-Manager/artifacts/queue-care) — The React + TypeScript frontend dashboard and display screens.
-  - [src/pages/reception.tsx](file:///D:/Clinic-Queue-Manager/artifacts/queue-care/src/pages/reception.tsx) — The reception dashboard for checking in patients and managing tokens.
-  - [src/pages/doctor.tsx](file:///D:/Clinic-Queue-Manager/artifacts/queue-care/src/pages/doctor.tsx) — Doctor console for consultation tracking and automatic flow progression.
-- [lib/db](file:///D:/Clinic-Queue-Manager/lib/db) — Shared Drizzle database schema, migrations, and mock database pooling logic.
+- [apps/api-server](file:///D:/Clinic-Queue-Manager/apps/api-server) — The core backend Express API server.
+  - [app.ts](file:///D:/Clinic-Queue-Manager/apps/api-server/src/app.ts) — Main Express app configuration, middleware, and production static hosting config.
+  - [routes/queue.ts](file:///D:/Clinic-Queue-Manager/apps/api-server/src/routes/queue.ts) — Contains queue state transitions (calls, completions, skips) and wait recalculations.
+- [apps/queue-care](file:///D:/Clinic-Queue-Manager/apps/queue-care) — The React + TypeScript frontend dashboard and display screens.
+  - [src/pages/reception.tsx](file:///D:/Clinic-Queue-Manager/apps/queue-care/src/pages/reception.tsx) — The reception dashboard for checking in patients and managing tokens.
+  - [src/pages/doctor.tsx](file:///D:/Clinic-Queue-Manager/apps/queue-care/src/pages/doctor.tsx) — Doctor console for consultation tracking and automatic flow progression.
+- [packages/db](file:///D:/Clinic-Queue-Manager/packages/db) — Shared Drizzle database schema, migrations, and mock database pooling logic.
 
 ---
 
