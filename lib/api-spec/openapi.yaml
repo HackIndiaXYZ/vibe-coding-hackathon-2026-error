@@ -3,13 +3,23 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: QueueCare AI API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: patients
+    description: Patient operations
+  - name: queue
+    description: Queue management operations
+  - name: doctors
+    description: Doctor operations
+  - name: analytics
+    description: Analytics operations
+  - name: settings
+    description: Settings operations
 paths:
   /healthz:
     get:
@@ -24,6 +34,265 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /patients:
+    get:
+      operationId: listPatients
+      tags: [patients]
+      summary: List all patients
+      responses:
+        "200":
+          description: List of patients
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Patient"
+    post:
+      operationId: registerPatient
+      tags: [patients]
+      summary: Register a new patient and generate a token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatientInput"
+      responses:
+        "201":
+          description: Patient registered with token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Patient"
+
+  /patients/{id}:
+    get:
+      operationId: getPatient
+      tags: [patients]
+      summary: Get a patient by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Patient found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Patient"
+        "404":
+          description: Not found
+
+  /patients/track/{token}:
+    get:
+      operationId: trackPatientByToken
+      tags: [patients]
+      summary: Track a patient's queue status by token number
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Patient tracking info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatientTrackingInfo"
+        "404":
+          description: Token not found
+
+  /queue:
+    get:
+      operationId: getQueue
+      tags: [queue]
+      summary: Get the current queue
+      responses:
+        "200":
+          description: Current queue state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QueueState"
+
+  /queue/next:
+    post:
+      operationId: callNextPatient
+      tags: [queue]
+      summary: Call the next patient in queue
+      responses:
+        "200":
+          description: Next patient called
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Patient"
+        "404":
+          description: No patients in queue
+
+  /queue/{patientId}/skip:
+    post:
+      operationId: skipPatient
+      tags: [queue]
+      summary: Skip a patient (move to end of queue)
+      parameters:
+        - name: patientId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Patient skipped
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Patient"
+
+  /queue/{patientId}/complete:
+    post:
+      operationId: completePatient
+      tags: [queue]
+      summary: Mark a patient consultation as complete
+      parameters:
+        - name: patientId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Patient completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Patient"
+
+  /queue/{patientId}/start:
+    post:
+      operationId: startConsultation
+      tags: [queue]
+      summary: Start consultation for a patient
+      parameters:
+        - name: patientId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Consultation started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Patient"
+
+  /doctors:
+    get:
+      operationId: listDoctors
+      tags: [doctors]
+      summary: List all doctors
+      responses:
+        "200":
+          description: List of doctors
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Doctor"
+
+  /doctors/current-patient:
+    get:
+      operationId: getDoctorCurrentPatient
+      tags: [doctors]
+      summary: Get the doctor's current patient
+      responses:
+        "200":
+          description: Current patient for doctor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DoctorView"
+
+  /analytics/summary:
+    get:
+      operationId: getAnalyticsSummary
+      tags: [analytics]
+      summary: Get analytics summary
+      responses:
+        "200":
+          description: Analytics summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyticsSummary"
+
+  /analytics/hourly:
+    get:
+      operationId: getHourlyAnalytics
+      tags: [analytics]
+      summary: Get hourly patient flow data
+      responses:
+        "200":
+          description: Hourly analytics
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/HourlyData"
+
+  /analytics/ai-insights:
+    get:
+      operationId: getAiInsights
+      tags: [analytics]
+      summary: Get AI insights and recommendations
+      responses:
+        "200":
+          description: AI insights
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiInsights"
+
+  /settings:
+    get:
+      operationId: getSettings
+      tags: [settings]
+      summary: Get clinic settings
+      responses:
+        "200":
+          description: Clinic settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClinicSettings"
+    patch:
+      operationId: updateSettings
+      tags: [settings]
+      summary: Update clinic settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClinicSettingsUpdate"
+      responses:
+        "200":
+          description: Settings updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClinicSettings"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +303,210 @@ components:
       required:
         - status
 
+    Patient:
+      type: object
+      required: [id, tokenNumber, name, phone, visitType, status, createdAt]
+      properties:
+        id:
+          type: integer
+        tokenNumber:
+          type: integer
+        name:
+          type: string
+        phone:
+          type: string
+        visitType:
+          type: string
+        symptoms:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [waiting, called, in_consultation, completed, skipped]
+        estimatedWaitMinutes:
+          type: ["integer", "null"]
+        patientsAhead:
+          type: ["integer", "null"]
+        createdAt:
+          type: string
+        calledAt:
+          type: ["string", "null"]
+        completedAt:
+          type: ["string", "null"]
+
+    PatientInput:
+      type: object
+      required: [name, phone, visitType]
+      properties:
+        name:
+          type: string
+        phone:
+          type: string
+        visitType:
+          type: string
+        symptoms:
+          type: string
+
+    PatientTrackingInfo:
+      type: object
+      required: [patient, currentServingToken, patientsAhead, estimatedWaitMinutes, queueStatus]
+      properties:
+        patient:
+          $ref: "#/components/schemas/Patient"
+        currentServingToken:
+          type: ["integer", "null"]
+        patientsAhead:
+          type: integer
+        estimatedWaitMinutes:
+          type: integer
+        queueStatus:
+          type: string
+          enum: [active, paused, closed]
+
+    QueueState:
+      type: object
+      required: [patients, currentToken, totalWaiting, totalCompleted, averageWaitMinutes, queueStatus]
+      properties:
+        patients:
+          type: array
+          items:
+            $ref: "#/components/schemas/Patient"
+        currentToken:
+          type: ["integer", "null"]
+        totalWaiting:
+          type: integer
+        totalCompleted:
+          type: integer
+        averageWaitMinutes:
+          type: number
+        queueStatus:
+          type: string
+          enum: [active, paused, closed]
+        estimatedQueueFinish:
+          type: ["string", "null"]
+
+    Doctor:
+      type: object
+      required: [id, name, specialization, isActive]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        specialization:
+          type: string
+        isActive:
+          type: boolean
+        currentPatientId:
+          type: ["integer", "null"]
+
+    DoctorView:
+      type: object
+      required: [doctor, upcomingPatients]
+      properties:
+        doctor:
+          $ref: "#/components/schemas/Doctor"
+        currentPatient:
+          $ref: "#/components/schemas/Patient"
+        upcomingPatients:
+          type: array
+          items:
+            $ref: "#/components/schemas/Patient"
+
+    AnalyticsSummary:
+      type: object
+      required: [patientsToday, patientsServed, averageWaitMinutes, averageConsultationMinutes, peakHour, queueEfficiency]
+      properties:
+        patientsToday:
+          type: integer
+        patientsServed:
+          type: integer
+        averageWaitMinutes:
+          type: number
+        averageConsultationMinutes:
+          type: number
+        peakHour:
+          type: string
+        queueEfficiency:
+          type: number
+        totalWaiting:
+          type: integer
+
+    HourlyData:
+      type: object
+      required: [hour, patients, avgWait]
+      properties:
+        hour:
+          type: string
+        patients:
+          type: integer
+        avgWait:
+          type: number
+
+    AiInsights:
+      type: object
+      required: [queueHealth, predictedFinishTime, avgConsultationMinutes, recommendations]
+      properties:
+        queueHealth:
+          type: string
+          enum: [excellent, good, moderate, critical]
+        predictedFinishTime:
+          type: string
+        avgConsultationMinutes:
+          type: number
+        recommendations:
+          type: array
+          items:
+            type: string
+        currentLoad:
+          type: number
+
+    ClinicSettings:
+      type: object
+      required: [id, clinicName, doctorName, maxQueueSize, avgConsultationMinutes, openTime, closeTime, notificationsEnabled]
+      properties:
+        id:
+          type: integer
+        clinicName:
+          type: string
+        doctorName:
+          type: string
+        specialization:
+          type: string
+        maxQueueSize:
+          type: integer
+        avgConsultationMinutes:
+          type: integer
+        openTime:
+          type: string
+        closeTime:
+          type: string
+        notificationsEnabled:
+          type: boolean
+        smsEnabled:
+          type: boolean
+        autoCallNext:
+          type: boolean
+
+    ClinicSettingsUpdate:
+      type: object
+      properties:
+        clinicName:
+          type: string
+        doctorName:
+          type: string
+        specialization:
+          type: string
+        maxQueueSize:
+          type: integer
+        avgConsultationMinutes:
+          type: integer
+        openTime:
+          type: string
+        closeTime:
+          type: string
+        notificationsEnabled:
+          type: boolean
+        smsEnabled:
+          type: boolean
+        autoCallNext:
+          type: boolean

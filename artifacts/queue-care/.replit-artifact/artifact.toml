@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "QueueCare AI"
+version = "1.0.0"
+id = "artifacts/queue-care"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 21552
+
+[services.development]
+run = "pnpm --filter @workspace/queue-care run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/queue-care", "run", "build" ]
+publicDir = "artifacts/queue-care/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "21552"
+BASE_PATH = "/"

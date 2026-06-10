@@ -1,0 +1,422 @@
+Build a complete startup-quality clinic queue management platform called **QueueCare AI** using the exact visual language of a modern editorial SaaS product.
+
+The design should feel like a premium software company, not a hospital management system.
+
+Use a typography-first approach with oversized headlines, spacious layouts, soft mint paper backgrounds, rounded pill controls, subtle gradients, and almost no shadows.
+
+Think:
+
+* Modern editorial software
+* Calm and premium
+* Minimal but sophisticated
+* Product-led design
+* Beautiful enough for investors and hackathon judges
+
+---
+
+# DESIGN SYSTEM
+
+## Theme
+
+Light theme only.
+
+Page background:
+Bone Mist (#f0f7f6)
+
+Primary text:
+Bark (#17150e)
+
+Cards:
+Pure white (#ffffff)
+
+Dividers:
+Ash (#e2e2e2)
+
+Accent:
+Chartreuse (#cccc25)
+
+Never use bright healthcare blues.
+
+Avoid typical hospital visuals.
+
+---
+
+# TYPOGRAPHY
+
+Use typography as the primary design element.
+
+Headlines:
+Huge editorial headlines.
+
+Examples:
+
+72px display headlines
+
+48px section headlines
+
+32px card titles
+
+Use tight letter spacing.
+
+Body text:
+16px–18px.
+
+Large amounts of whitespace.
+
+Every section should feel like a modern magazine layout.
+
+---
+
+# BUTTON SYSTEM
+
+All buttons must be fully pill-shaped.
+
+Primary CTA:
+Dark Bark background.
+
+Secondary CTA:
+Chartreuse background.
+
+No square buttons.
+
+No shadows.
+
+---
+
+# OVERALL PRODUCT STRUCTURE
+
+QueueCare AI consists of:
+
+1. Landing Page
+2. Login
+3. Clinic Onboarding
+4. Reception Dashboard
+5. Patient Tracking Screen
+6. Waiting Room Display
+7. Doctor Dashboard
+8. Analytics
+9. Settings
+
+Every page should use the same design language.
+
+---
+
+# LANDING PAGE
+
+Hero background:
+Bone Mist.
+
+Massive headline:
+
+"Stop Making Patients Wait Blindly."
+
+Subheadline:
+
+AI-powered clinic queue management that predicts wait times and modernizes patient flow.
+
+Two vertically stacked CTAs:
+
+Get Started
+
+Watch Demo
+
+Leave significant empty space.
+
+No clutter.
+
+---
+
+# FEATURE SECTIONS
+
+Create alternating editorial sections.
+
+Left side:
+Headline + text.
+
+Right side:
+Large gradient product preview card.
+
+Gradient choices:
+
+Periwinkle
+
+Sage
+
+Slate Blue
+
+Moss
+
+Each feature card should contain realistic dashboard previews.
+
+Features:
+
+Smart Token Management
+
+AI Wait Prediction
+
+Live Queue Tracking
+
+Doctor Workflow
+
+Patient QR Tracking
+
+Clinic Analytics
+
+---
+
+# RECEPTION DASHBOARD
+
+Premium SaaS dashboard.
+
+Sidebar:
+Minimal.
+
+Icons only with labels.
+
+---
+
+Top analytics cards:
+
+Patients Today
+
+Waiting
+
+Completed
+
+Average Wait
+
+Use large typography.
+
+No dense tables.
+
+---
+
+Patient Registration Card
+
+Fields:
+
+Patient Name
+
+Phone Number
+
+Visit Type
+
+Symptoms
+
+Generate Token
+
+Display generated token in a large elegant modal.
+
+Show QR code.
+
+---
+
+Queue Section
+
+Replace boring tables with modern cards.
+
+Each queue card:
+
+Token Number
+
+Patient Name
+
+Status
+
+Estimated Wait
+
+Actions:
+
+Call Next
+
+Skip
+
+Complete
+
+---
+
+AI Insights Panel
+
+Display:
+
+Queue Health
+
+Predicted Queue Finish Time
+
+Average Consultation Time
+
+AI Recommendations
+
+Use gradient editorial cards.
+
+---
+
+# PATIENT TRACKING PAGE
+
+Mobile-first.
+
+Very minimal.
+
+Large token number centered.
+
+Example:
+
+TOKEN 24
+
+Current Serving
+
+Patients Ahead
+
+Estimated Wait
+
+Progress Bar
+
+Live Status Updates
+
+Design should resemble a premium flight tracking experience.
+
+---
+
+# WAITING ROOM DISPLAY
+
+Large-screen TV interface.
+
+Massive typography.
+
+Current Token in center.
+
+Upcoming Tokens below.
+
+Queue Health Status.
+
+Average Wait.
+
+Very clean.
+
+Minimal information.
+
+Readable from across a room.
+
+---
+
+# DOCTOR DASHBOARD
+
+Calm and focused.
+
+Current Patient card dominates the screen.
+
+Display:
+
+Token
+
+Patient Name
+
+Symptoms
+
+Visit Type
+
+Large action buttons:
+
+Start Consultation
+
+Complete Consultation
+
+Upcoming patients shown as elegant stacked cards.
+
+---
+
+# ANALYTICS PAGE
+
+Editorial dashboard style.
+
+Large charts.
+
+Large numbers.
+
+Plenty of whitespace.
+
+Metrics:
+
+Patients Served
+
+Average Wait
+
+Peak Hours
+
+Consultation Duration
+
+Queue Efficiency
+
+Avoid dense enterprise dashboards.
+
+---
+
+# SETTINGS PAGE
+
+Minimal settings experience.
+
+Large section cards.
+
+Clinic Information
+
+Doctor Preferences
+
+Queue Rules
+
+Notifications
+
+Branding
+
+Account
+
+---
+
+# INTERACTIONS
+
+All screens should appear connected in real time.
+
+When Call Next is clicked:
+
+Patient screen updates instantly.
+
+Doctor dashboard updates instantly.
+
+Waiting room display updates instantly.
+
+Show subtle live indicators throughout the product.
+
+---
+
+# DEMO DATA
+
+Preload:
+
+35 patients
+
+Active queue
+
+AI wait predictions
+
+Realistic clinic names
+
+Realistic consultation times
+
+Realistic queue flow
+
+---
+
+# DESIGN RULES
+
+Use oversized typography before adding more UI.
+
+Prefer whitespace over borders.
+
+Prefer gradients over shadows.
+
+Use pill-shaped controls everywhere.
+
+Use chartreuse sparingly as a premium accent.
+
+Keep interfaces calm, elegant, and editorial.
+
+The final result should look like a venture-backed healthcare startup rather than a traditional clinic management dashboard.
