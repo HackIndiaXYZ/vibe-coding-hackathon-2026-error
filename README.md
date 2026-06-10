@@ -128,6 +128,9 @@ Configuration variables are managed via environment files. The defaults are pre-
   - [src/pages/reception.tsx](file:///D:/Clinic-Queue-Manager/apps/queue-care/src/pages/reception.tsx) — The reception dashboard for checking in patients and managing tokens.
   - [src/pages/doctor.tsx](file:///D:/Clinic-Queue-Manager/apps/queue-care/src/pages/doctor.tsx) — Doctor console for consultation tracking and automatic flow progression.
 - [packages/db](file:///D:/Clinic-Queue-Manager/packages/db) — Shared Drizzle database schema, migrations, and mock database pooling logic.
+- [packages/api-spec](file:///D:/Clinic-Queue-Manager/packages/api-spec) — OpenAPI Specification definitions for the entire application interface.
+- [packages/api-zod](file:///D:/Clinic-Queue-Manager/packages/api-zod) — Auto-generated Zod validation schemas generated directly from the OpenAPI specs.
+- [packages/api-client-react](file:///D:/Clinic-Queue-Manager/packages/api-client-react) — Auto-generated React Query API hooks for type-safe frontend request handling.
 
 ---
 
