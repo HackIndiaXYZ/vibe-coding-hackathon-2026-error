@@ -199,6 +199,10 @@ if (process.env.DATABASE_URL) {
         if (lowerSql.includes('insert into "patients"')) {
           const newPatient: any = { 
             id: nextPatientId++, 
+            status: "waiting",
+            symptoms: null,
+            estimatedWaitMinutes: null,
+            patientsAhead: null,
             createdAt: new Date().toISOString(), 
             calledAt: null, 
             completedAt: null 
