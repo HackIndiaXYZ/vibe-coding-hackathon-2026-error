@@ -10,6 +10,7 @@ import {
   ListPatientsResponse,
 } from "@workspace/api-zod";
 import { serializeDates } from "../lib/serialize";
+import { checkAndSendNotifications, sseConnections } from "../lib/notifications";
 
 const router: IRouter = Router();
 
@@ -61,6 +62,9 @@ router.post("/patients", async (req, res): Promise<void> => {
     })
     .returning();
 
+  // Run in background to evaluate notifications triggers
+  checkAndSendNotifications();
+
   res.status(201).json(GetPatientResponse.parse(serializeDates(patient)));
 });
 
@@ -101,6 +105,43 @@ router.get("/patients/track/:token", async (req, res): Promise<void> => {
   }));
 
   res.json(tracking);
+});
+
+router.get("/patients/track/:token/events", async (req, res): Promise<void> => {
+  const token = Number(req.params.token);
+  if (Number.isNaN(token)) {
+    res.status(400).json({ error: "Invalid token" });
+    return;
+  }
+
+  const [patient] = await db
+    .select()
+    .from(patientsTable)
+    .where(eq(patientsTable.tokenNumber, token))
+    .limit(1);
+
+  if (!patient) {
+    res.status(404).json({ error: "Patient not found" });
+    return;
+  }
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders();
+
+  const conn = { patientId: patient.id, res };
+  sseConnections.push(conn);
+
+  // Keep connection alive with heartbeat
+  res.write(":\n\n");
+
+  req.on("close", () => {
+    const idx = sseConnections.indexOf(conn);
+    if (idx >= 0) {
+      sseConnections.splice(idx, 1);
+    }
+  });
 });
 
 router.get("/patients/:id", async (req, res): Promise<void> => {

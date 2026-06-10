@@ -12,6 +12,7 @@ import {
   StartConsultationResponse,
 } from "@workspace/api-zod";
 import { serializeDates } from "../lib/serialize";
+import { checkAndSendNotifications } from "../lib/notifications";
 
 const router: IRouter = Router();
 
@@ -81,6 +82,9 @@ router.post("/queue/next", async (req, res): Promise<void> => {
     .where(eq(patientsTable.id, nextPatient[0].id))
     .returning();
 
+  // Run in background to process notifications
+  checkAndSendNotifications();
+
   res.json(CallNextPatientResponse.parse(serializeDates(updated)));
 });
 
@@ -101,6 +105,9 @@ router.post("/queue/:patientId/skip", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Patient not found" });
     return;
   }
+
+  // Run in background to process notifications
+  checkAndSendNotifications();
 
   res.json(SkipPatientResponse.parse(serializeDates(updated)));
 });
@@ -127,6 +134,9 @@ router.post("/queue/:patientId/complete", async (req, res): Promise<void> => {
     .update(doctorsTable)
     .set({ currentPatientId: null })
     .where(eq(doctorsTable.currentPatientId, params.data.patientId));
+
+  // Run in background to process notifications
+  checkAndSendNotifications();
 
   res.json(CompletePatientResponse.parse(serializeDates(updated)));
 });
