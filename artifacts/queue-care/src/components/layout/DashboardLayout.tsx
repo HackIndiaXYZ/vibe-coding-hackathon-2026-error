@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Users, Activity, Settings, MonitorPlay } from "lucide-react";
+import { LayoutDashboard, Users, Activity, Settings, MonitorPlay, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface DashboardLayoutProps {
@@ -7,7 +7,7 @@ interface DashboardLayoutProps {
 }
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
 
   const navItems = [
     { href: "/reception", label: "Reception", icon: Users },
@@ -16,6 +16,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     { href: "/analytics", label: "Analytics", icon: Activity },
     { href: "/settings", label: "Settings", icon: Settings },
   ];
+
+  const handleLogout = () => {
+    localStorage.removeItem("queue_care_authenticated");
+    localStorage.removeItem("queue_care_logged_in_phone");
+    setLocation("/login");
+  };
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
@@ -47,6 +53,15 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             );
           })}
         </nav>
+        <div className="mt-auto px-4 py-6 border-t border-sidebar-border">
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-3 px-3 py-2 w-full rounded-full text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors cursor-pointer border-none bg-transparent justify-start"
+          >
+            <LogOut className="h-4 w-4" />
+            Logout
+          </button>
+        </div>
       </aside>
 
       {/* Main Content */}
@@ -58,3 +73,4 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     </div>
   );
 }
+

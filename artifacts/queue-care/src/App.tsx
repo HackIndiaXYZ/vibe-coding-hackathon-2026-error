@@ -5,6 +5,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 
 import Home from "@/pages/home";
+import Login from "@/pages/login";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import Reception from "@/pages/reception";
 import Track from "@/pages/track";
 import WaitingRoom from "@/pages/waiting-room";
@@ -18,12 +20,29 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
-      <Route path="/reception" component={Reception} />
+      <Route path="/login" component={Login} />
+      <Route path="/reception">
+        <ProtectedRoute>
+          <Reception />
+        </ProtectedRoute>
+      </Route>
       <Route path="/track/:token" component={Track} />
       <Route path="/waiting-room" component={WaitingRoom} />
-      <Route path="/doctor" component={Doctor} />
-      <Route path="/analytics" component={Analytics} />
-      <Route path="/settings" component={Settings} />
+      <Route path="/doctor">
+        <ProtectedRoute>
+          <Doctor />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/analytics">
+        <ProtectedRoute>
+          <Analytics />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/settings">
+        <ProtectedRoute>
+          <Settings />
+        </ProtectedRoute>
+      </Route>
       <Route component={NotFound} />
     </Switch>
   );
@@ -43,3 +62,4 @@ function App() {
 }
 
 export default App;
+

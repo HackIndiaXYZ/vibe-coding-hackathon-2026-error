@@ -11,11 +11,11 @@ export default function Home() {
           <span className="font-serif text-2xl tracking-tight">QueueCare</span>
         </div>
         <div className="flex items-center gap-4">
-          <Link href="/reception" className="text-sm font-medium hover:text-accent transition-colors">
+          <Link href="/login" className="text-sm font-medium hover:text-accent transition-colors">
             Login
           </Link>
           <Link
-            href="/reception"
+            href="/login"
             className="px-6 py-2.5 rounded-full bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
           >
             Get Started
@@ -52,7 +52,7 @@ export default function Home() {
               className="flex items-center justify-center gap-4 pt-8"
             >
               <Link
-                href="/reception"
+                href="/login"
                 className="px-8 py-4 rounded-full bg-primary text-primary-foreground text-lg font-medium hover:bg-primary/90 transition-colors flex items-center gap-2"
               >
                 Get Started <ArrowRight className="w-5 h-5" />
