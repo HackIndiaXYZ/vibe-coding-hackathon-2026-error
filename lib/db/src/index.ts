@@ -7,9 +7,37 @@ const { Pool } = pg;
 export let db: NodePgDatabase<typeof schema>;
 export let pool: pg.Pool;
 
-// Helper to convert snake_case to camelCase
+// Helpers to convert case formats
 function toCamelCase(str: string): string {
   return str.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
+}
+
+function camelToSnakeCase(str: string): string {
+  return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+}
+
+function toSnakeCaseRow(obj: any) {
+  if (!obj) return obj;
+  const newRow: any = {};
+  for (const key of Object.keys(obj)) {
+    newRow[camelToSnakeCase(key)] = obj[key];
+  }
+  return newRow;
+}
+
+// Emulates a real pg driver query result
+function getMockResult(rows: any[], command = "SELECT") {
+  const snakeRows = rows.map(toSnakeCaseRow);
+  const fields = snakeRows.length > 0 
+    ? Object.keys(snakeRows[0]).map((name) => ({ name })) 
+    : [];
+  return {
+    command,
+    rowCount: snakeRows.length,
+    oid: null,
+    rows: snakeRows,
+    fields,
+  };
 }
 
 if (process.env.DATABASE_URL) {
@@ -52,141 +80,188 @@ if (process.env.DATABASE_URL) {
 
   // Mock Postgres client-like object
   const mockPool = {
-    query: async (sql: string, params: any[] = []) => {
-      const lowerSql = sql.toLowerCase();
+    query: async (sql: any, params: any[] = []) => {
+      let queryText = "";
+      let isArrayMode = false;
+      if (typeof sql === "string") {
+        queryText = sql;
+      } else if (sql && typeof sql === "object" && typeof sql.text === "string") {
+        queryText = sql.text;
+        params = sql.values || params;
+        if (sql.rowMode === "array") {
+          isArrayMode = true;
+        }
+      }
+      const lowerSql = queryText.toLowerCase();
 
-      // --- SETTINGS ---
-      if (lowerSql.includes('from "settings"')) {
-        return { rows: [mockSettings] };
-      }
-      if (lowerSql.includes('insert into "settings"')) {
-        return { rows: [mockSettings] };
-      }
-      if (lowerSql.includes('update "settings"')) {
-        const setMatches = sql.match(/"([a-z0-9_]+)"\s*=\s*\$(\d+)/g);
-        if (setMatches) {
-          for (const match of setMatches) {
-            const parts = match.split("=");
-            const col = parts[0].replace(/"/g, "").trim();
-            const paramIdx = parseInt(parts[1].replace(/\$/g, "").trim(), 10) - 1;
-            const field = toCamelCase(col);
-            if (field in mockSettings) {
-              (mockSettings as any)[field] = params[paramIdx];
-            }
-          }
+      const executeQuery = async () => {
+        // --- SETTINGS ---
+        if (lowerSql.includes('from "settings"')) {
+          return getMockResult([mockSettings]);
         }
-        return { rows: [mockSettings] };
-      }
-
-      // --- DOCTORS ---
-      if (lowerSql.includes('from "doctors"')) {
-        return { rows: mockDoctors };
-      }
-      if (lowerSql.includes('update "doctors"')) {
-        const setMatches = sql.match(/"([a-z0-9_]+)"\s*=\s*\$(\d+)/g);
-        if (setMatches) {
-          for (const match of setMatches) {
-            const parts = match.split("=");
-            const col = parts[0].replace(/"/g, "").trim();
-            const paramIdx = parseInt(parts[1].replace(/\$/g, "").trim(), 10) - 1;
-            const field = toCamelCase(col);
-            if (field in mockDoctors[0]) {
-              (mockDoctors[0] as any)[field] = params[paramIdx];
-            }
-          }
+        if (lowerSql.includes('insert into "settings"')) {
+          return getMockResult([mockSettings], "INSERT");
         }
-        return { rows: mockDoctors };
-      }
-
-      // --- PATIENTS ---
-      if (lowerSql.includes('from "patients"')) {
-        if (lowerSql.includes('where "patients"."id" = $1') || lowerSql.includes('where "patients"."id" = $2')) {
-          const idVal = params[0];
-          const found = mockPatients.find((p) => p.id === idVal);
-          return { rows: found ? [found] : [] };
-        }
-        if (lowerSql.includes('where "patients"."token_number" = $1')) {
-          const tokenVal = params[0];
-          const found = mockPatients.find((p) => p.tokenNumber === tokenVal);
-          return { rows: found ? [found] : [] };
-        }
-        return { rows: mockPatients };
-      }
-      if (lowerSql.includes('insert into "patients"')) {
-        const colsMatch = sql.match(/insert into "patients"\s*\(([^)]+)\)/i);
-        const newPatient: any = { 
-          id: nextPatientId++, 
-          createdAt: new Date().toISOString(), 
-          calledAt: null, 
-          completedAt: null 
-        };
-        if (colsMatch) {
-          const cols = colsMatch[1].split(",").map((c) => c.replace(/"/g, "").trim());
-          for (let i = 0; i < cols.length; i++) {
-            const field = toCamelCase(cols[i]);
-            newPatient[field] = params[i];
-          }
-        }
-        mockPatients.push(newPatient);
-        return { rows: [newPatient] };
-      }
-      if (lowerSql.includes('update "patients"')) {
-        const idMatch = sql.match(/where "patients"\."id"\s*=\s*\$(\d+)/i);
-        let patientId = -1;
-        if (idMatch) {
-          const paramIdx = parseInt(idMatch[1], 10) - 1;
-          patientId = params[paramIdx];
-        }
-        const patient = mockPatients.find((p) => p.id === patientId);
-        if (patient) {
-          const setMatches = sql.match(/"([a-z0-9_]+)"\s*=\s*\$(\d+)/g);
+        if (lowerSql.includes('update "settings"')) {
+          const setMatches = queryText.match(/"([a-z0-9_]+)"\s*=\s*\$(\d+)/g);
           if (setMatches) {
             for (const match of setMatches) {
               const parts = match.split("=");
               const col = parts[0].replace(/"/g, "").trim();
               const paramIdx = parseInt(parts[1].replace(/\$/g, "").trim(), 10) - 1;
               const field = toCamelCase(col);
-              patient[field] = params[paramIdx];
+              if (field in mockSettings) {
+                (mockSettings as any)[field] = params[paramIdx];
+              }
             }
           }
-          return { rows: [patient] };
+          return getMockResult([mockSettings], "UPDATE");
         }
-        return { rows: [] };
-      }
 
-      // --- NOTIFICATIONS ---
-      if (lowerSql.includes('from "notifications"')) {
-        const patientIdMatch = sql.match(/"patient_id"\s*=\s*\$(\d+)/i);
-        const typeMatch = sql.match(/"type"\s*=\s*\$(\d+)/i);
-        let filtered = mockNotifications;
-        if (patientIdMatch) {
-          const pid = params[parseInt(patientIdMatch[1], 10) - 1];
-          filtered = filtered.filter(n => n.patientId === pid);
+        // --- DOCTORS ---
+        if (lowerSql.includes('from "doctors"')) {
+          return getMockResult(mockDoctors);
         }
-        if (typeMatch) {
-          const typeVal = params[parseInt(typeMatch[1], 10) - 1];
-          filtered = filtered.filter(n => n.type === typeVal);
+        if (lowerSql.includes('update "doctors"')) {
+          const setMatches = queryText.match(/"([a-z0-9_]+)"\s*=\s*\$(\d+)/g);
+          if (setMatches) {
+            for (const match of setMatches) {
+              const parts = match.split("=");
+              const col = parts[0].replace(/"/g, "").trim();
+              const paramIdx = parseInt(parts[1].replace(/\$/g, "").trim(), 10) - 1;
+              const field = toCamelCase(col);
+              if (field in mockDoctors[0]) {
+                (mockDoctors[0] as any)[field] = params[paramIdx];
+              }
+            }
+          }
+          return getMockResult(mockDoctors, "UPDATE");
         }
-        return { rows: filtered };
-      }
-      if (lowerSql.includes('insert into "notifications"')) {
-        const colsMatch = sql.match(/insert into "notifications"\s*\(([^)]+)\)/i);
-        const newNotif: any = { 
-          id: nextNotificationId++, 
-          createdAt: new Date().toISOString() 
-        };
-        if (colsMatch) {
-          const cols = colsMatch[1].split(",").map((c) => c.replace(/"/g, "").trim());
-          for (let i = 0; i < cols.length; i++) {
-            const field = toCamelCase(cols[i]);
-            newNotif[field] = params[i];
+
+        // --- PATIENTS ---
+        if (lowerSql.includes('from "patients"')) {
+          if (lowerSql.includes('where "patients"."id" = $1') || lowerSql.includes('where "patients"."id" = $2')) {
+            const idVal = params[0];
+            const found = mockPatients.find((p) => p.id === idVal);
+            return getMockResult(found ? [found] : []);
+          }
+          if (lowerSql.includes('where "patients"."token_number" = $1')) {
+            const tokenVal = params[0];
+            const found = mockPatients.find((p) => p.tokenNumber === tokenVal);
+            return getMockResult(found ? [found] : []);
+          }
+          return getMockResult(mockPatients);
+        }
+        if (lowerSql.includes('insert into "patients"')) {
+          const colsMatch = queryText.match(/insert into "patients"\s*\(([^)]+)\)/i);
+          const newPatient: any = { 
+            id: nextPatientId++, 
+            createdAt: new Date().toISOString(), 
+            calledAt: null, 
+            completedAt: null 
+          };
+          if (colsMatch) {
+            const cols = colsMatch[1].split(",").map((c) => c.replace(/"/g, "").trim());
+            for (let i = 0; i < cols.length; i++) {
+              const field = toCamelCase(cols[i]);
+              newPatient[field] = params[i];
+            }
+          }
+          mockPatients.push(newPatient);
+          return getMockResult([newPatient], "INSERT");
+        }
+        if (lowerSql.includes('update "patients"')) {
+          const idMatch = queryText.match(/where "patients"\."id"\s*=\s*\$(\d+)/i);
+          let patientId = -1;
+          if (idMatch) {
+            const paramIdx = parseInt(idMatch[1], 10) - 1;
+            patientId = params[paramIdx];
+          }
+          const patient = mockPatients.find((p) => p.id === patientId);
+          if (patient) {
+            const setMatches = queryText.match(/"([a-z0-9_]+)"\s*=\s*\$(\d+)/g);
+            if (setMatches) {
+              for (const match of setMatches) {
+                const parts = match.split("=");
+                const col = parts[0].replace(/"/g, "").trim();
+                const paramIdx = parseInt(parts[1].replace(/\$/g, "").trim(), 10) - 1;
+                const field = toCamelCase(col);
+                patient[field] = params[paramIdx];
+              }
+            }
+            return getMockResult([patient], "UPDATE");
+          }
+          return getMockResult([]);
+        }
+
+        // --- NOTIFICATIONS ---
+        if (lowerSql.includes('from "notifications"')) {
+          const patientIdMatch = queryText.match(/"patient_id"\s*=\s*\$(\d+)/i);
+          const typeMatch = queryText.match(/"type"\s*=\s*\$(\d+)/i);
+          let filtered = mockNotifications;
+          if (patientIdMatch) {
+            const pid = params[parseInt(patientIdMatch[1], 10) - 1];
+            filtered = filtered.filter(n => n.patientId === pid);
+          }
+          if (typeMatch) {
+            const typeVal = params[parseInt(typeMatch[1], 10) - 1];
+            filtered = filtered.filter(n => n.type === typeVal);
+          }
+          return getMockResult(filtered);
+        }
+        if (lowerSql.includes('insert into "notifications"')) {
+          const colsMatch = queryText.match(/insert into "notifications"\s*\(([^)]+)\)/i);
+          const newNotif: any = { 
+            id: nextNotificationId++, 
+            createdAt: new Date().toISOString() 
+          };
+          if (colsMatch) {
+            const cols = colsMatch[1].split(",").map((c) => c.replace(/"/g, "").trim());
+            for (let i = 0; i < cols.length; i++) {
+              const field = toCamelCase(cols[i]);
+              newNotif[field] = params[i];
+            }
+          }
+          mockNotifications.push(newNotif);
+          return getMockResult([newNotif], "INSERT");
+        }
+
+        return getMockResult([]);
+      };
+
+      const res = await executeQuery();
+
+      if (isArrayMode && res && queryText) {
+        let colsText = "";
+        const returningMatch = queryText.match(/returning\s+(.+)$/i);
+        if (returningMatch) {
+          colsText = returningMatch[1];
+        } else {
+          const selectMatch = queryText.match(/select\s+(.+?)\s+from/i);
+          if (selectMatch) {
+            colsText = selectMatch[1];
           }
         }
-        mockNotifications.push(newNotif);
-        return { rows: [newNotif] };
+
+        if (colsText) {
+          const cols = colsText.split(",").map(colStr => {
+            const parts = colStr.trim().split(/\s+as\s+/i);
+            const target = parts[parts.length - 1].trim();
+            const match = target.match(/(?:\.|^)"?([a-zA-Z0-9_]+)"?$/);
+            return match ? match[1] : target.replace(/"/g, "");
+          });
+
+          res.rows = res.rows.map((row: any) => {
+            return cols.map(col => {
+              return row[col] !== undefined ? row[col] : null;
+            });
+          });
+
+          res.fields = cols.map(name => ({ name }));
+        }
       }
 
-      return { rows: [] };
+      return res;
     },
   };
 
