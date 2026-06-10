@@ -2,371 +2,137 @@
 
 > Know Your Turn. Not Just Your Token.
 
-QueueCare AI is an AI-powered clinic queue management platform that replaces paper token slips, manual patient calling, and uncertain waiting times with a real-time digital queue system.
+QueueCare AI is a production-grade clinic operating system that replaces paper token slips, manual patient calling, and uncertain waiting times with an AI-powered real-time digital queue system. 
 
-Patients can track their position live, doctors can focus on consultations, and receptionists can manage the entire queue from a single dashboard.
-
----
-
-# Problem Statement
-
-Millions of patients spend hours waiting in clinics without knowing when they will be called.
-
-Most clinics still rely on:
-
-- Paper token slips
-- Receptionists shouting token numbers
-- Manual queue management
-- No wait-time visibility
-- No patient notifications
-
-This creates:
-
-- Long waiting times
-- Frustrated patients
-- Crowded waiting rooms
-- Increased receptionist workload
-
-QueueCare AI solves this with real-time queue management and intelligent wait-time prediction.
+Patients track their queue position live on their own devices, doctors manage consultations from a focused workspace, and receptionists run the clinic using an analytical dashboard.
 
 ---
 
-# Solution
+## 📖 The Problem We Solve
+Millions of patients spend hours waiting in clinics without knowing when they will be called. Traditional manual token-calling creates three critical pain points:
 
-QueueCare AI is a smart clinic operating system that:
-
-- Generates digital tokens
-- Predicts waiting times
-- Tracks queue progress in real time
-- Automatically notifies patients
-- Provides dashboards for doctors and receptionists
-- Displays queue status on patient devices and waiting room screens
+| Traditional Clinic | Why It Fails? | QueueCare AI Solution |
+| :--- | :--- | :--- |
+| **Paper Tokens** | Easy to lose; patient is locked to the physical waiting room. | **Dynamic Live Link**: Real-time position tracking on mobile web. |
+| **Manual Calling** | Receptionists must yell names/numbers; highly disruptive and chaotic. | **SSE Live Pushes**: Real-time digital alerts on patient and waiting room screens. |
+| **Blind Waiting** | Zero wait-time visibility; causes frustration and overcrowded rooms. | **AI Wait Predictor**: Dynamic estimation using visit types and doctor speed. |
 
 ---
 
-# Key Features
+## 🏗️ Architecture: The Patient Flow Sandwich
 
-## Reception Dashboard
-
-Receptionists can:
-
-- Add patients
-- Generate tokens
-- View live queue
-- Call next patient
-- Skip patients
-- Recall patients
-- Monitor queue health
-
-### Dashboard Metrics
-
-- Total Patients Today
-- Patients Waiting
-- Patients Completed
-- Average Wait Time
-- Queue Health Score
-
----
-
-## Doctor Dashboard
-
-Doctors can:
-
-- View current patient
-- Start consultation
-- Complete consultation
-- View upcoming patients
-- Track consultation duration
-
-When a consultation is completed, the system automatically updates the queue and recalculates predictions.
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  📺 Layer 3: Dashboards & Displays                              │
+│      React SPA · Live SSE state · Reception, Doctor, Patients   │
+└────────────────────────┬────────────────────────────────────────┘
+                         │ SSE (Server-Sent Events) & HTTP
+                         ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  🧠 Layer 2: QueueCare API Core                                 │
+│      Express API · SQLite / Postgres · Real-time event hooks    │
+│                                                                 │
+│      ┌─────────────────────────────────────────────────┐        │
+│      │  Tier A: Queue Engine  (Active State Manager)   │        │
+│      │  → Patient status: waiting, called, completed   │        │
+│      │  → Automatic next-patient calling & notifications│       │
+│      ├─────────────────────────────────────────────────┤        │
+│      │  Tier B: Wait Estimator (AI Prediction Engine)   │        │
+│      │  → Dynamic estimation based on visit type       │        │
+│      │  → Real-time average consultation drift factor  │        │
+│      └─────────────────────────────────────────────────┘        │
+│      Recalculates wait times in <5ms on queue changes           │
+└────────────────────────┬────────────────────────────────────────┘
+                         │ Drizzle ORM
+                         ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  💾 Layer 1: Data Engine                                        │
+│      PostgreSQL (Production) / In-memory Mock (Local Fallback)  │
+│      → Unified schema: clinics, patients, logs, queues         │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
-## Patient Queue Tracking
+## ⚡ The Cascading Wait Prediction Engine
+Wait times are not linear. QueueCare AI uses a multi-factor estimation algorithm to predict expected call times:
+- **Base Duration**: Defined by the clinic's default consultation window (e.g., 15 minutes).
+- **Visit Type Modifiers**: Consultations for procedures (e.g., dressings, minor surgery) scale wait time predictions upward, while simple follow-ups or report check-ins scale them downward.
+- **Drift Factor**: An automated rolling average calculates the doctor's actual completion speed dynamically and offsets predictions based on real-time consultation drift.
 
-Each patient receives:
-
-- Unique tracking link
-- QR code access
-
-Patients can view:
-
-- Current serving token
-- Their token number
-- Patients ahead
-- Estimated wait time
-- Expected call time
-
-All information updates in real time.
+All recalculations trigger automatically in the background when:
+1. A receptionist adds a patient to the queue.
+2. A doctor starts a consultation.
+3. A doctor clicks **Complete Consultation** (which auto-calls the next patient).
 
 ---
 
-## Waiting Room Display
+## 🎯 Real-World Clinic Scenario Coverage
 
-A large-screen display for clinics showing:
-
-- Current token being served
-- Upcoming tokens
-- Average waiting time
-- Queue status
-
-Automatically updates without refresh.
+| Scenario / Event | Action Taken | Real-Time Impact |
+| :--- | :--- | :--- |
+| **New Patient Check-in** | Receptionist registers patient. | Unique token is minted, QR code is generated, and patient is added to the waiting queue. |
+| **Patient Tracks Queue** | Patient opens live link. | Screen displays their token, number of patients ahead, and a dynamic progress bar. |
+| **Doctor consultation starts** | Doctor clicks "Start Consultation". | Active patient status is updated to `called`; consultation timer starts. |
+| **Consultation complete** | Doctor clicks "Complete". | Current patient marked `completed`. **Next waiting patient is automatically transitioned to `called` status**, updating all displays instantly. |
 
 ---
 
-## AI Wait-Time Prediction
+## 🚀 Quick Start
 
-QueueCare AI continuously learns from:
+### Prerequisites
+- **Node.js**: `18.0.0+`
+- **pnpm**: `9.0.0+` (Run via `npx --package=pnpm pnpm` if not globally installed)
 
-- Consultation durations
-- Queue length
-- Visit types
-- Historical patient flow
+### Step 1 — Clone the Repository
+```bash
+git clone https://github.com/HackIndiaXYZ/vibe-coding-hackathon-2026-error.git
+cd vibe-coding-hackathon-2026-error
+```
 
-Predictions include:
+### Step 2 — Install Dependencies
+```bash
+npx pnpm install --ignore-scripts
+```
+> [!NOTE]
+> The `--ignore-scripts` flag is recommended on Windows environments to skip UNIX-specific preinstall hooks.
 
-- Estimated Wait Time
-- Expected Call Time
-- Queue Completion Time
-
-Example:
-
-Token #25
-
-Expected Call:
-11:42 AM
-
-Estimated Wait:
-18 Minutes
-
----
-
-## Real-Time Notifications
-
-Patients automatically receive updates when:
-
-### Token Generated
-
-Your token #25 has been generated.
-
-### Turn Approaching
-
-Only 2 patients remain before your turn.
-
-### Patient Called
-
-Your token #25 is now being called.
-
-Please proceed to the consultation room.
-
-### Final Call
-
-Please proceed immediately or your token may be skipped.
+### Step 3 — Run the Project
+You can run both the frontend and API server concurrently in development mode:
+```bash
+npx pnpm run dev
+```
+- **Frontend SPA Dashboard**: Available at `http://localhost:5173`
+- **Backend API Server**: Running at `http://localhost:5000`
 
 ---
 
-# Workflow
+## ⚙️ Configuration Reference
+Configuration variables are managed via environment files. The defaults are pre-configured to fall back to safe development values.
 
-## Receptionist Flow
-
-Register Patient
-
-↓
-
-Generate Token
-
-↓
-
-Patient Receives Tracking Link
-
-↓
-
-Patient Added To Queue
-
-↓
-
-Call Next Patient
-
-↓
-
-Patient Notified
+### Backend Settings
+| Variable | Default | Description |
+| :--- | :--- | :--- |
+| `PORT` | `5000` | Port for the backend API server to bind to. |
+| `NODE_ENV` | `development` | In `production`, Express serves the frontend SPA static files from `queue-care/dist/public`. |
+| `DATABASE_URL` | *None* | Connection string for PostgreSQL database. Falls back to an in-memory mock DB if not provided. |
 
 ---
 
-## Doctor Flow
+## 🛠️ Codebase Structure
 
-View Current Patient
-
-↓
-
-Start Consultation
-
-↓
-
-Consultation Timer Starts
-
-↓
-
-Complete Consultation
-
-↓
-
-Consultation Duration Saved
-
-↓
-
-AI Recalculates Queue
-
-↓
-
-Next Patient Automatically Called
+- [artifacts/api-server](file:///D:/Clinic-Queue-Manager/artifacts/api-server) — The core backend Express API server.
+  - [app.ts](file:///D:/Clinic-Queue-Manager/artifacts/api-server/src/app.ts) — Main Express app configuration, middleware, and production static hosting config.
+  - [routes/queue.ts](file:///D:/Clinic-Queue-Manager/artifacts/api-server/src/routes/queue.ts) — Contains queue state transitions (calls, completions, skips) and wait recalculations.
+- [artifacts/queue-care](file:///D:/Clinic-Queue-Manager/artifacts/queue-care) — The React + TypeScript frontend dashboard and display screens.
+  - [src/pages/reception.tsx](file:///D:/Clinic-Queue-Manager/artifacts/queue-care/src/pages/reception.tsx) — The reception dashboard for checking in patients and managing tokens.
+  - [src/pages/doctor.tsx](file:///D:/Clinic-Queue-Manager/artifacts/queue-care/src/pages/doctor.tsx) — Doctor console for consultation tracking and automatic flow progression.
+- [lib/db](file:///D:/Clinic-Queue-Manager/lib/db) — Shared Drizzle database schema, migrations, and mock database pooling logic.
 
 ---
 
-## Patient Flow
-
-Receive Token
-
-↓
-
-Track Queue
-
-↓
-
-View Live Position
-
-↓
-
-Receive Call Notification
-
-↓
-
-Attend Consultation
-
----
-
-# Automated Backend Actions
-
-When a doctor clicks **Complete Consultation**:
-
-1. Consultation duration is recorded
-2. Patient status changes to Completed
-3. AI prediction engine updates
-4. Queue recalculates
-5. Next patient is selected
-6. Notification is sent
-7. Waiting room display updates
-8. Patient tracking pages update
-9. Dashboard metrics refresh
-10. Analytics are updated
-
-No manual intervention required.
-
----
-
-# Technology Stack
-
-## Frontend
-
-- React
-- TypeScript
-- Tailwind CSS
-
-## Backend
-
-- Supabase
-
-## Database
-
-- PostgreSQL
-
-## Authentication
-
-- Phone Number OTP
-
-## Realtime
-
-- Supabase Realtime
-
-## AI Layer
-
-- Wait-Time Prediction Engine
-- Queue Health Analysis
-- Queue Optimization Logic
-
----
-
-# Database Schema
-
-## Clinics
-
-- clinic_id
-- clinic_name
-- doctor_name
-- specialization
-- phone_number
-- consultation_duration
-
-## Patients
-
-- patient_id
-- patient_name
-- phone_number
-- visit_type
-- status
-
-## Tokens
-
-- token_number
-- patient_id
-- queue_position
-- estimated_wait
-- expected_call_time
-
-## Consultations
-
-- consultation_id
-- patient_id
-- doctor_id
-- start_time
-- end_time
-- duration
-
-## Notifications
-
-- notification_id
-- patient_id
-- notification_type
-- sent_at
-
----
-
-# Future Roadmap
-
-- WhatsApp Integration
-- Appointment Booking
-- Multi-Doctor Clinics
-- Voice Calling System
-- Electronic Health Records (EHR)
-- AI Queue Optimization
-- Multi-Branch Management
-
----
-
-# Impact
-
-QueueCare AI helps clinics:
-
-- Reduce patient uncertainty
-- Improve waiting room experience
-- Lower receptionist workload
-- Increase operational efficiency
-- Deliver predictable patient flow
-
-The result is a smarter, faster, and more transparent healthcare experience for everyone.
-
----
-
-# Tagline
-
-**Know Your Turn. Not Just Your Token.**
+## 🗺️ Future Roadmap
+- [ ] **WhatsApp & SMS Alerts**: Push wait time updates and call notifications directly to the patient's phone.
+- [ ] **Multi-Doctor Scheduling**: Support clinic rooms with multiple active consultation rooms and cross-room routing.
+- [ ] **Historical Analytics**: Generate charts showing peak hours, average wait time per day, and doctor consultation speed.
+- [ ] **Voice Announcement Integration**: Auto-generate spoken announcements in waiting room displays ("Token 24, please proceed to Room 1").
